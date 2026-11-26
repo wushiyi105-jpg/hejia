@@ -40,13 +40,33 @@ Docker:
 ```bash
 docker build -t hejia .
 docker run -p 8000:8000 hejia
+
+# or use the image published to GHCR on every tag
+docker run -p 8000:8000 ghcr.io/wushiyi105-jpg/hejia:0.1.0
 ```
+
+## 🧾 Examples
+
+`examples/` ships four **real quotes with PII removed**, plus the **actual output** of running them (`examples/out/case-0N.md`, first line carries the command and date):
+
+| File | Scenario | City / Area |
+|---|---|---|
+| `case-01.txt` | Full-renovation labour+aux quote, with a table header row | Beijing / 89 m2 |
+| `case-02.txt` | Kitchen+bath partial job, lots of lump-sum lines | Chengdu / 68 m2 |
+| `case-03.txt` | Large flat, unit prices uniformly high | Shenzhen / 120 m2 |
+| `case-04.txt` | Rental turn, only 11 lines | Wuhan / 55 m2 |
+
+```bash
+python -m hejia --mock audit --file examples/case-01.txt --city 北京 --area 89
+```
+
+The output pins the numbers you can check by hand: 111502 total, 1253 per m2, the floor-tile line off by 184, wall tile billed twice, management fee 1.3x above range, 9 missing items. Details and known limits: [`examples/README.md`](examples/README.md).
 
 ## 🤔 Why not just ask a general LLM
 
 A general model can read the quote and say "watch for change orders and double billing". HeJia adds the four things it cannot:
 
-1. **The arithmetic can be verified** — `qty × price` versus `subtotal` is computed in Python; a 200 gap prints `+200.00` plus the expected amount. The same quote gives the same result twice, and 17 unit tests cover these formulas. A general model does not multiply line by line, and cannot tell you which line is off.
+1. **The arithmetic can be verified** — `qty × price` versus `subtotal` is computed in Python; a 200 gap prints `+200.00` plus the expected amount. The same quote gives the same result twice, and 38 tests cover these formulas end to end. A general model does not multiply line by line, and cannot tell you which line is off.
 2. **Amounts are not rewritten** — `agent.strip_money()` replaces "1800 yuan" in model output with a placeholder; questions stay textual and every number comes from the quote itself. "This looks about 300 too expensive" cannot be checked, and may simply be wrong.
 3. **Works offline** — without a key, recomputation, benchmarking, duplicates, gaps, trade shares and the question list all run; a general chat model stops.
 4. **Findings point at lines** — each issue carries a line number and the original text ("line 3, paint ㎡ 80 at 200, 5.2× the band ceiling"), each gap names the trade. A general model gives prose that cannot be traced to a row.
@@ -164,7 +184,12 @@ hejia/
 │   ├── prices.json    # 34 trade price ranges
 │   ├── standard.json  # 26 standard items
 │   └── vague.json     # 30 vague phrases
-├── tests/test_hejia.py
+├── tests/
+│   ├── test_hejia.py          # 26 offline unit tests
+│   └── test_integration.py    # 12 HTTP / model-guard / CLI tests
+├── examples/
+│   ├── case-01..04.txt        # real quotes, PII removed
+│   └── out/case-01..04.md     # actual output, command on line 1
 └── assets/demo.gif
 ```
 
@@ -174,7 +199,13 @@ hejia/
 python -m unittest discover tests -v
 ```
 
-17 tests cover local rules only: parsing, subtotal gaps, unit aliases, city factors, duplicates, gaps, trade shares, per sqm, amount stripping, offline pipeline. CI runs them on 3.10/3.11/3.12.
+38 tests in three layers:
+
+- **26 offline unit tests** — parsing, subtotal gaps, unit aliases, city factors, duplicates, gaps, trade classification, amount stripping.
+- **4 HTTP integration tests** — a real `ThreadingHTTPServer` on a random port; POST `/api/audit` and assert total, per m2, line count, saved id; plus `404` and missing-area handling.
+- **8 model-layer / CLI tests** — a fake OpenAI-compatible server returns a quote that is not in the document, a question carrying `2000 元`, and a fully-invalid list; the tests assert the quote is dropped, the amount becomes 该金额, and an all-invalid list yields an empty question list. CLI runs through `subprocess` asserting exit codes 0/2 and stderr text (missing file, non-UTF-8 file).
+
+CI runs them on 3.10/3.11/3.12; on `v*` tags it also builds and pushes the image to GHCR.
 
 ## 👤 Author
 
