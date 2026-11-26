@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hejia"
 version = "0.1.0"
-description = "装修报价核查 Agent —— 复算每一行、揪出重复计费与漏项"
+description = "核价 · 装修报价核查 · 逐行复算，揪出重复计费与漏项"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
