@@ -67,8 +67,15 @@ def render(result: dict) -> str:
 def cmd_audit(args):
     text = ""
     if args.file:
-        with open(args.file, encoding="utf-8") as f:
-            text = f.read()
+        try:
+            with open(args.file, encoding="utf-8") as f:
+                text = f.read()
+        except OSError as e:
+            print(f"❌ 读不到文件:{args.file}({e.strerror or e})", file=sys.stderr)
+            sys.exit(2)
+        except UnicodeError:
+            print(f"❌ 文件不是 UTF-8 编码,请另存为 UTF-8 后重试:{args.file}", file=sys.stderr)
+            sys.exit(2)
     elif args.text:
         text = args.text
     elif not sys.stdin.isatty():

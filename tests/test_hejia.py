@@ -121,5 +121,56 @@ class TestAgent(unittest.TestCase):
         self.assertEqual(out["questions"], rules.local_questions(result))
 
 
+class TestClassifyRegression(unittest.TestCase):
+    """回归:裸字匹配会把「踢脚线」「包立管」错归到水电,工序占比跟着错。"""
+
+    def test_foot_line_is_tiling(self):
+        self.assertEqual(rules.classify("踢脚线"), "瓦工")
+
+    def test_pipe_wrap_is_tiling(self):
+        self.assertEqual(rules.classify("包立管"), "瓦工")
+
+    def test_cabinet_install_is_install(self):
+        self.assertEqual(rules.classify("橱柜安装"), "安装")
+
+    def test_water_electric_rewire(self):
+        self.assertEqual(rules.classify("水电改造"), "水电")
+        self.assertEqual(rules.classify("强电改造"), "水电")
+        self.assertEqual(rules.classify("水路改造"), "水电")
+
+    def test_shower_test_is_waterproof(self):
+        self.assertEqual(rules.classify("闭水试验"), "防水")
+
+    def test_other_keeps_management_fee(self):
+        self.assertEqual(rules.classify("工程管理费"), "其他")
+
+
+class TestUnitPricingNoise(unittest.TestCase):
+    """回归:本来就按「项/套」报价的项目不该被要求「按量计价」。"""
+
+    def _kinds(self, text, city="北京"):
+        return [i["kind"] for i in rules.audit(text, city=city)["issues"]]
+
+    def test_inherently_item_priced_is_not_flagged(self):
+        text = "\n".join([
+            "卫生间防水 ㎡ 8 55 440",
+            "闭水试验 项 1 200 200",
+            "垃圾清运 项 1 500 500",
+            "洁具安装 套 2 260 520",
+        ])
+        self.assertNotIn("模糊计价", self._kinds(text))
+
+    def test_real_item_priced_is_still_flagged(self):
+        text = "\n".join([
+            "拆改工程 项 1 2600 2600",
+            "地砖铺贴 项 1 5200 5200",
+        ])
+        self.assertEqual(self._kinds(text).count("模糊计价"), 2)
+
+    def test_benchmark_reports_unit(self):
+        item = rules.parse_lines("墙砖铺贴 ㎡ 25 65 1625")[0]
+        self.assertEqual(rules.benchmark(item, city="成都")["unit"], "㎡")
+
+
 if __name__ == "__main__":
     unittest.main()

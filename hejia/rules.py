@@ -27,13 +27,13 @@ CITY_FACTOR = {"北京": 1.25, "上海": 1.22, "深圳": 1.2, "广州": 1.05, "�
                "南京": 0.95, "成都": 0.85, "武汉": 0.82, "西安": 0.78, "重庆": 0.75}
 
 PROCESS_WORDS = [
-    ("拆改", ("拆", "铲", "清运", "砸")),
-    ("防水", ("防水", "闭水", "涂膜")),
-    ("水电", ("电", "线", "开关", "插座", "配电", "水路", "管", "开槽", "弱电", "强电")),
-    ("瓦工", ("砖", "瓦", "找平", "踢脚", "立管", "过门石", "美缝")),
-    ("木工", ("木", "吊顶", "柜", "门套", "窗帘盒", "造型")),
-    ("油漆", ("漆", "墙纸", "基层", "腻子", "涂刷")),
-    ("安装", ("安装", "灯具", "洁具", "五金", "打孔", "热水器", "橱柜")),
+    ("拆改", ("拆除", "拆", "铲", "清运", "砸", "加固")),
+    ("防水", ("防水", "闭水", "涂膜", "返高")),
+    ("水电", ("水电", "强电", "弱电", "电线", "线管", "开关", "插座", "配电", "空开", "水路", "水管", "布线", "开槽")),
+    ("瓦工", ("踢脚", "立管", "过门石", "找平", "砖", "瓦", "美缝", "倒角", "勾缝")),
+    ("木工", ("窗帘盒", "吊顶", "门套", "柜", "木", "造型")),
+    ("油漆", ("基层", "墙纸", "腻子", "涂刷", "漆")),
+    ("安装", ("安装", "灯具", "洁具", "五金", "打孔", "热水器", "橱柜", "灶具")),
 ]
 
 
@@ -83,12 +83,19 @@ def parse_lines(text: str) -> list[dict]:
 
 
 def classify(name: str) -> str:
+    """按关键词归类工序:命中越具体(关键词越长)越优先,同长度时按工序表顺序。
+
+    早期版本用「裸字匹配」,「踢脚线」因为有「线」被当成水电、
+    「包立管」因为有「管」被当成水电,工序占比因此错位。
+    """
     if "管理费" in name or "设计费" in name or "搬运" in name:
         return "其他"
+    best_process, best_score = "其他", 0
     for process, words in PROCESS_WORDS:
-        if any(w in name for w in words):
-            return process
-    return "其他"
+        score = max((len(w) for w in words if w in name), default=0)
+        if score > best_score:
+            best_process, best_score = process, score
+    return best_process
 
 
 def benchmark(item: dict, city: str | None = None, prices: list[dict] | None = None) -> dict | None:
@@ -103,8 +110,9 @@ def benchmark(item: dict, city: str | None = None, prices: list[dict] | None = N
     factor = CITY_FACTOR.get(city or "", 1.0)
     low, high = best["low"] * factor, best["high"] * factor
     price = item["price"]
-    if item["unit"] and normalize_unit(best["unit"]) != item["unit"]:
-        return {"name": best["name"], "low": round(low), "high": round(high),
+    unit = normalize_unit(best["unit"])
+    if item["unit"] and unit != item["unit"]:
+        return {"name": best["name"], "unit": unit, "low": round(low), "high": round(high),
                 "verdict": "单位不同,无法直接对标"}
     if price > high * 1.2:
         verdict = f"高于区间上限 {price / high:.1f} 倍"
@@ -112,7 +120,8 @@ def benchmark(item: dict, city: str | None = None, prices: list[dict] | None = N
         verdict = "低于区间下限,问清材料品牌与工艺"
     else:
         verdict = "在区间内"
-    return {"name": best["name"], "low": round(low), "high": round(high), "verdict": verdict}
+    return {"name": best["name"], "unit": unit, "low": round(low), "high": round(high),
+            "verdict": verdict}
 
 
 def find_duplicates(lines: list[dict]) -> list[dict]:
@@ -179,8 +188,12 @@ def audit(text: str, city: str | None = None, area: float | None = None) -> dict
             issues.append({"kind": "单价", "line_no": x["line_no"], "raw": x["raw"],
                            "detail": f"{bm['name']} 参考 {bm['low']}–{bm['high']} 元/{x['unit']},{bm['verdict']}"})
         if x["unit"] in ("项", "套") and x["process"] != "其他":
-            issues.append({"kind": "模糊计价", "line_no": x["line_no"], "raw": x["raw"],
-                           "detail": f"「按{'项' if x['unit'] == '项' else '套'}报价」看不出工作量,要求改为按量计价"})
+            # 参考区间本身就是按「项/套」报的项目(闭水试验、垃圾清运、洁具安装)
+            # 不该被要求「按量计价」,否则每份报价都会刷出一排假疑点。
+            same_unit = bool(bm) and bm.get("unit") == x["unit"]
+            if not same_unit:
+                issues.append({"kind": "模糊计价", "line_no": x["line_no"], "raw": x["raw"],
+                               "detail": f"「按{'项' if x['unit'] == '项' else '套'}报价」看不出工作量,要求改为按量计价"})
 
     for d in find_duplicates(lines):
         issues.append({"kind": "重复", "line_no": d["a"]["line_no"], "raw": d["a"]["raw"],
