@@ -77,7 +77,9 @@ $('#btn').onclick=async()=>{
       body:JSON.stringify({text:$('#text').value,city:$('#city').value,area:$('#area').value})});
     const r=await p.json(); if(r.error) throw new Error(r.error);
     let h='<div class="card"><div class="hint">'+(r.mode==='model'?'模型已连接':'离线模式')+(r.saved_id?' · 已入库 #'+r.saved_id:'')+'</div>';
-    h+='<p style="line-height:1.7">'+esc(r.summary)+'</p>';
+    h+='<p style="line-height:1.7">'+esc(r.verdict||'')+'</p>';
+    h+='<div class="hint" style="margin-bottom:10px">合计 '+(r.summary.total||0)+' 元'+
+       (r.summary.per_sqm?' · '+r.summary.per_sqm+' 元/㎡':'')+'</div>';
     h+='<table><tr><th>#</th><th>项目</th><th>数量×单价</th><th>小计</th><th>工序</th></tr>';
     r.lines.filter(x=>x.ok).forEach(x=>{
       h+='<tr><td>'+x.line_no+'</td><td>'+esc(x.name)+'</td><td>'+x.qty+x.unit+' × '+x.price+'</td>'+

@@ -81,6 +81,13 @@ class TestHTTPServer(unittest.TestCase):
         self.assertTrue(status["mock"])
         self.assertIsNone(status["model"])
 
+    def test_page_renders_verdict_not_object(self):
+        # 页面早期把 r.summary(对象) 直接 esc() 进 <p>,浏览器上就显示 [object Object]
+        page = self._get("/")
+        self.assertIn("r.verdict", page)
+        self.assertNotIn("esc(r.summary)", page)
+        self.assertIn("r.summary.total", page)
+
     def test_post_audit_numbers(self):
         code, report = self._post({"text": QUOTE, "city": "成都", "area": "89"})
         self.assertEqual(code, 200)
