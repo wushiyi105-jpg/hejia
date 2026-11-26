@@ -210,7 +210,7 @@ CI 在 3.10/3.11/3.12 上跑同一组,打 `v*` tag 时额外构建并推送镜�
 
 ## 👤 作者
 
-shiyi · GitHub [@wushiyi105-jpg](https://github.com/wushiyi105-jpg) · [wushiyi105@gmail.com](mailto:wushiyi105@gmail.com)
+大钊 · 17382987315
 
 ## 📄 License
 

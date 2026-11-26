@@ -209,7 +209,7 @@ CI runs them on 3.10/3.11/3.12; on `v*` tags it also builds and pushes the image
 
 ## 👤 Author
 
-shiyi · GitHub [@wushiyi105-jpg](https://github.com/wushiyi105-jpg) · [wushiyi105@gmail.com](mailto:wushiyi105@gmail.com)
+Dazhao · 17382987315
 
 ## 📄 License
 
