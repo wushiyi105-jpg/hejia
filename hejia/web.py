@@ -13,7 +13,7 @@ PAGE = """<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>核价 · 装修报价核查</title>
+<title>核价 · 这轮多花在哪</title>
 <style>
   :root{--bg:#f5f7fa;--card:#fff;--ink:#1f2937;--muted:#6b7280;--blue:#0f766e;--soft:#ccfbf1;
         --amber:#f59e0b;--line:#e5e7eb;--radius:16px}
@@ -43,14 +43,70 @@ PAGE = """<!doctype html>
   .item p{margin:2px 0}
   .q{background:#f9fafb;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px}
   h3{font-size:15px;color:var(--muted);margin:18px 0 8px}
+
+.prod{display:block;font-size:11px;line-height:1.4;letter-spacing:.18em;font-weight:650;margin-bottom:8px;opacity:.72}
+.lede{max-width:62ch;line-height:1.75}
+.route{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin:0 0 20px;border:1px solid var(--line);background:var(--line)}
+.route span{padding:11px 13px;background:var(--card);font-size:12px;line-height:1.5}
+.route b{display:block;font-size:10px;letter-spacing:.1em;margin-bottom:3px;opacity:.66}
+button{min-height:46px}
+input,select{min-height:44px}
+@media(max-width:680px){
+  .wrap{padding:20px 16px 56px}
+  .route{grid-template-columns:1fr}
+  header h1{font-size:30px!important}
+  .row>div{min-width:100%!important}
+  button{width:100%}
+}
+
+body{background:#fbf6eb;color:#29302e;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:980px}
+header{padding:8px 0 22px;border-bottom:1px solid #cfc2aa;margin-bottom:20px}
+header h1{font-family:"Songti SC","SimSun",Georgia,serif;font-size:38px;line-height:1.24;letter-spacing:-.01em}
+header p{color:#6b6255;font-size:14px}
+.card{background:#fffdf8;border:1px solid #d9cebb;border-top:3px solid #29302e;border-radius:1px;box-shadow:none}
+button{background:#29302e;border-radius:1px;letter-spacing:.05em}
+button:hover{background:#3d4b47}
+textarea,input,select{background:#fffdfa;border-color:#d5c9b4;border-radius:1px}
+textarea:focus,input:focus,select:focus{border-color:#b23b2a;box-shadow:0 0 0 2px #ead8d1}
+.item{border-left:3px solid #b23b2a;background:#fffaf5}
+.item.low{border-left-color:#d9cebb}
+.cost .cell,.cell{border-color:#d9cebb;border-radius:1px}
+h3{color:#8d3526;letter-spacing:.08em}
+
+
+/* palette-normalized */
+:root{--bg:#fbf6eb;--card:#fffdf8;--ink:#29302e;--text:#29302e;--dim:#6b6255;--line:#d9cebb;--accent:#b23b2a}
+
+/* polish-batch1 */
+button.ghost,button.secondary{background:transparent!important;color:#b23b2a!important;border:1px solid #d9cebb!important}
+
+/* mobile-32 */
+
+@media(max-width:760px){
+  main{grid-template-columns:1fr!important}
+  aside{border-right:0!important;border-bottom:1px solid #d9cebb;width:auto!important}
+  section{padding:16px!important}
+  .row{flex-wrap:wrap!important}
+  .row>div{min-width:100%!important}
+  h1{font-size:30px!important}
+  .route{grid-template-columns:1fr!important}
+  button{min-height:48px}
+  pre{overflow-x:auto}
+}
+
+/* mobile-height */
+@media(max-width:760px){main{min-height:auto!important}aside{min-height:0!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>核价 · 装修报价核查<span class="badge" id="badge">…</span></h1>
-    <p>把报价单粘进来,逐行复算、查出重复与漏项,再告诉你该问施工方什么。</p>
+    <h1><span class="prod">核价</span>这份报价，哪些钱不该花 <span class="badge" id="badge">…</span></h1>
+    <p class="lede">给第一次装修的业主：把两家报价按工序、面积和计量单位对齐，复算金额，挑出重复项、合同外项目和待问项。</p>
   </header>
+  <div class="route" aria-label="任务步骤"><span><b>01</b>贴两家报价</span><span><b>02</b>对齐工序复算</span><span><b>03</b>生成询价问题单</span></div>
+
   <div class="card">
     <label>报价单(每行:项目 单位 数量 单价 小计)</label>
     <textarea id="text" rows="9" placeholder="拆除墙体 ㎡ 12 45 540&#10;卫生间防水 ㎡ 8 55 440&#10;墙砖铺贴 ㎡ 25 65 1625"></textarea>
